@@ -6,6 +6,9 @@ Aplicación web para **gestionar, registrar, analizar y reportar** el estado de 
 
 ![Logo](./assets/logo.png)
 
+Creado por Eduardo Restrepo
+eduardo.restrepo@protonmail.ch
+
 ---
 
 ## 🚀 Características principales
