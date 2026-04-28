@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: auditcopilot-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: auditcopilot
+      POSTGRES_USER: audit
+      POSTGRES_PASSWORD: audit
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U audit -d auditcopilot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: auditcopilot-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      APP_BASE_URL: http://localhost:3000
+      DATABASE_URL: postgresql://audit:audit@postgres:5432/auditcopilot
+      APP_ENCRYPTION_KEY: change-this-in-production-with-a-strong-secret
+      ALLOWED_ORIGINS: http://localhost:3000
+      TRUST_PROXY: "false"
+      DB_SSL: "false"
+      DB_POOL_MAX: 20
+      DB_IDLE_TIMEOUT_MS: 30000
+      DB_CONNECT_TIMEOUT_MS: 10000
+      MAX_FILE_SIZE_MB: 20
+      MAX_JSON_SIZE: 2mb
+      RATE_LIMIT_WINDOW_MS: 900000
+      RATE_LIMIT_MAX: 300
+      AI_FALLBACK_TO_HEURISTIC: "true"
+      AI_PROVIDER_NAME: azure-foundry
+      AI_MODEL_NAME: configurar-modelo
+    ports:
+      - "3000:3000"
+    volumes:
+      - uploads_data:/app/uploads
+
+volumes:
+  postgres_data:
+  uploads_data:

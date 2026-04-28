@@ -1,0 +1,117 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Audit Evidence Copilot API",
+    "version": "3.3.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000"
+    }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "summary": "Estado de salud"
+      }
+    },
+    "/api/readyz": {
+      "get": {
+        "summary": "Estado de disponibilidad"
+      }
+    },
+    "/api/frameworks": {
+      "get": {
+        "summary": "Listar marcos"
+      },
+      "post": {
+        "summary": "Crear marco"
+      }
+    },
+    "/api/frameworks/{id}/controls": {
+      "get": {
+        "summary": "Listar controles de un marco"
+      },
+      "post": {
+        "summary": "Crear control en un marco"
+      }
+    },
+    "/api/evaluations": {
+      "get": {
+        "summary": "Listar evaluaciones"
+      },
+      "post": {
+        "summary": "Crear evaluacion"
+      }
+    },
+    "/api/evaluations/{id}/controls": {
+      "get": {
+        "summary": "Listar controles evaluados"
+      }
+    },
+    "/api/evaluations/{id}/process": {
+      "post": {
+        "summary": "Procesar una evaluacion completa"
+      }
+    },
+    "/api/evaluation-controls/{id}/process": {
+      "post": {
+        "summary": "Procesar un control"
+      }
+    },
+    "/api/evaluation-controls/{id}/create-finding": {
+      "post": {
+        "summary": "Crear hallazgo a partir del control"
+      }
+    },
+    "/api/findings": {
+      "get": {
+        "summary": "Listar hallazgos"
+      },
+      "post": {
+        "summary": "Crear hallazgo manual"
+      }
+    },
+    "/api/findings/{id}/action-plans": {
+      "get": {
+        "summary": "Listar planes de accion de un hallazgo"
+      },
+      "post": {
+        "summary": "Crear plan de accion"
+      }
+    },
+    "/api/connectors": {
+      "get": {
+        "summary": "Listar conectores"
+      },
+      "post": {
+        "summary": "Crear conector"
+      }
+    },
+    "/api/settings": {
+      "get": {
+        "summary": "Leer configuracion"
+      }
+    },
+    "/api/ai-providers": {
+      "post": {
+        "summary": "Registrar motor IA"
+      }
+    },
+    "/api/ai-providers/{id}": {
+      "patch": {
+        "summary": "Actualizar configuracion de motor IA"
+      }
+    },
+    "/api/ai-providers/{id}/test": {
+      "post": {
+        "summary": "Probar conexion del motor IA"
+      }
+    },
+    "/api/openapi.json": {
+      "get": {
+        "summary": "Especificacion OpenAPI"
+      }
+    }
+  }
+}

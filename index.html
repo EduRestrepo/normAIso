@@ -3,147 +3,434 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ISO 42001 Implementation Tracker v2.0</title>
+    <title>Audit Evidence Copilot</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 </head>
 <body>
     <aside class="sidebar">
-        <div class="sidebar-header">
-            <h3>ISO 42001 v2.0</h3>
-            <p style="font-size: 12px; opacity: 0.6;">Enterprise Tracker</p>
+        <div class="brand-block">
+            <p class="eyebrow">Auditoria asistida por IA</p>
+            <h1>Audit Evidence Copilot</h1>
+            <p class="brand-copy">Sin datos de ejemplo. Configuracion real desde cero, con evidencia multi-origen, hallazgos y seguimiento.</p>
         </div>
         <nav class="sidebar-nav">
-            <a href="#" class="nav-item active" data-tab="dashboard">Dashboard</a>
-            <a href="#" class="nav-item" data-tab="controles">Controles</a>
-            <a href="#" class="nav-item" data-tab="accionables">Accionables</a>
-            <a href="#" class="nav-item" data-tab="participantes">Participantes</a>
-            <a href="#" class="nav-item" data-tab="config">Configuración</a>
-            <a href="#" class="nav-item" data-tab="admin">Administración</a>
+            <button class="nav-item active" data-view="dashboard">Resumen</button>
+            <button class="nav-item" data-view="evaluations">Evaluaciones</button>
+            <button class="nav-item" data-view="workspace">Mesa de control</button>
+            <button class="nav-item" data-view="findings">Hallazgos</button>
+            <button class="nav-item" data-view="connectors">Fuentes</button>
+            <button class="nav-item" data-view="settings">Configuracion</button>
         </nav>
-        <div style="padding: 24px; margin-top: auto; font-size: 12px; color: #64748b;">
-            v1.6-Enterprise<br>© 2025 Eduardo Restrepo
+        <div class="sidebar-footer">
+            <p>Base v3.2</p>
+            <p>PostgreSQL + Docker</p>
         </div>
     </aside>
 
-    <div class="content-wrapper">
-        <header class="top-bar">
-            <h2 id="pageTitle">Resumen Ejecutivo</h2>
-            <div id="userInfo">
-                <span id="currentRoleBadge" class="btn" style="background: #1e293b; font-size: 12px; padding: 4px 12px;">Rol: Admin</span>
+    <section class="app-shell">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">Plataforma multi-norma</p>
+                <h2 id="pageTitle">Resumen operativo</h2>
+            </div>
+            <div class="topbar-actions">
+                <span class="pill">Catalogo configurable</span>
+                <span class="pill pill-muted" id="connectionBadge">Conectando...</span>
             </div>
         </header>
 
-        <main id="mainContainer">
-            <!-- DASHBOARD TAB -->
-            <div id="dashboard" class="tab-content active">
-                <div class="grid grid-4" id="kpiGrid">
-                    <!-- KPIs loaded by JS -->
-                </div>
-                <div class="grid grid-2" style="margin-top: 24px;">
-                    <div class="card">
-                        <h3>Cumplimiento por Dominio</h3>
-                        <canvas id="domainChart"></canvas>
+        <main class="main-content">
+            <section class="view active" id="dashboardView">
+                <div class="hero-card">
+                    <div>
+                        <p class="eyebrow">Arranque vacio</p>
+                        <h3>La plataforma ya no carga marcos, usuarios ni conectores de ejemplo</h3>
+                        <p class="hero-copy">Primero registra tus marcos normativos, sus controles y tus motores IA. A partir de ahi podras crear evaluaciones reales, adjuntar evidencia, generar hallazgos y seguir planes de accion.</p>
                     </div>
-                    <div class="card">
-                        <h3>Tendencia Mensual</h3>
-                        <canvas id="trendChart"></canvas>
-                    </div>
+                    <button class="btn btn-primary" id="goToCreateEvaluation">Ir a configuracion inicial</button>
                 </div>
-            </div>
 
-            <!-- CONTROLES TAB -->
-            <div id="controles" class="tab-content">
-                <div class="card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                        <h3>Catálogo de Controles</h3>
-                        <button class="btn btn-primary" id="btnOpenControlModal">+ Nuevo Control</button>
-                    </div>
-                    <div id="controlsTableContainer">
-                        <!-- Table loaded by JS -->
-                    </div>
-                </div>
-            </div>
+                <div class="stats-grid" id="dashboardMetrics"></div>
 
-            <!-- ACCIONABLES TAB -->
-            <div id="accionables" class="tab-content">
-                <div class="card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                        <h3>Planes de Mejora (Accionables)</h3>
-                        <button class="btn btn-primary" id="btnNewAction">+ Nuevo Accionable</button>
-                    </div>
-                    <div class="grid grid-4" id="actionStats" style="margin-bottom: 24px;">
-                        <!-- Stats loaded by JS -->
-                    </div>
-                    <div id="actionsTableContainer">
-                        <!-- Table loaded by JS -->
-                    </div>
-                </div>
-            </div>
+                <div class="two-column">
+                    <article class="card">
+                        <div class="section-header">
+                            <div>
+                                <p class="eyebrow">Cobertura por marco</p>
+                                <h3>Estado del repositorio normativo</h3>
+                            </div>
+                        </div>
+                        <div id="frameworkSummary" class="stack-list"></div>
+                    </article>
 
-            <!-- Modal para Nuevo Control -->
-            <div id="controlModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center;">
-                <div class="card" style="width: 600px; max-height: 90vh; overflow-y: auto;">
-                    <h3>Nuevo Control ISO 42001</h3>
-                    <hr style="margin: 16px 0;">
-                    <form id="controlForm" class="grid grid-2">
-                        <div class="form-group">
-                            <label>ID / Código</label>
-                            <input type="text" id="ctrlId" placeholder="Ej: A.2.1" required style="width: 100%; padding: 8px; margin-top: 4px;">
+                    <article class="card">
+                        <div class="section-header">
+                            <div>
+                                <p class="eyebrow">Capacidades</p>
+                                <h3>Base ya preparada</h3>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>Nombre</label>
-                            <input type="text" id="ctrlNombre" required style="width: 100%; padding: 8px; margin-top: 4px;">
+                        <div class="feature-grid">
+                            <div class="feature-tile"><strong>Sin seeds</strong><span>La base arranca limpia y la configuras desde la app.</span></div>
+                            <div class="feature-tile"><strong>Fuentes</strong><span>Upload, SharePoint, filesystem, URL y conectores futuros.</span></div>
+                            <div class="feature-tile"><strong>Hallazgos</strong><span>Creacion manual o desde el resultado automatico del control.</span></div>
+                            <div class="feature-tile"><strong>Gobierno</strong><span>Prompts, motores IA, catalogos y bitacora de actividad.</span></div>
                         </div>
-                        <div class="form-group col-span-2" style="grid-column: span 2;">
-                            <label>Dominio / Categoría</label>
-                            <select id="ctrlCat" required style="width: 100%; padding: 8px; margin-top: 4px;">
-                                <option>A.2 Políticas</option>
-                                <option>A.3 Organización</option>
-                                <option>A.4 Recursos</option>
-                                <option>A.5 Impacto</option>
-                                <option>A.6 Ciclo de Vida</option>
-                                <option>A.7 Datos</option>
-                                <option>A.8 Información</option>
-                                <option>A.9 Uso</option>
-                                <option>A.10 Terceros</option>
-                            </select>
-                        </div>
-                        <div class="form-group col-span-2" style="grid-column: span 2;">
-                            <label>Descripción</label>
-                            <textarea id="ctrlDesc" rows="3" style="width: 100%; padding: 8px; margin-top: 4px;"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Estado</label>
-                            <select id="ctrlEstado" style="width: 100%; padding: 8px; margin-top: 4px;">
-                                <option>No iniciado</option>
-                                <option>En implementación</option>
-                                <option>Implementado</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Prioridad</label>
-                            <select id="ctrlPrio" style="width: 100%; padding: 8px; margin-top: 4px;">
-                                <option>Baja</option>
-                                <option>Media</option>
-                                <option>Alta</option>
-                                <option>Crítica</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="display: flex; gap: 8px; align-items: center; justify-content: flex-end; grid-column: span 2; margin-top: 16px;">
-                            <button type="button" class="btn" id="btnCloseControlModal">Cancelar</button>
-                            <button type="submit" class="btn btn-primary">Guardar Control</button>
-                        </div>
-                    </form>
+                    </article>
                 </div>
-            </div>
+            </section>
+
+            <section class="view" id="evaluationsView">
+                <div class="two-column align-start">
+                    <div class="stack-list">
+                        <article class="card">
+                            <div class="section-header">
+                                <div>
+                                    <p class="eyebrow">Catalogo</p>
+                                    <h3>Registrar marco</h3>
+                                </div>
+                            </div>
+                            <form id="frameworkForm" class="form-grid">
+                                <label>
+                                    Nombre del marco
+                                    <input id="frameworkName" required placeholder="ISO/IEC 42001">
+                                </label>
+                                <label>
+                                    Codigo
+                                    <input id="frameworkCode" required placeholder="ISO42001">
+                                </label>
+                                <label>
+                                    Version
+                                    <input id="frameworkVersion" required placeholder="2023">
+                                </label>
+                                <label class="full-span">
+                                    Descripcion
+                                    <textarea id="frameworkDescription" rows="3" placeholder="Descripcion funcional del marco"></textarea>
+                                </label>
+                                <button class="btn btn-secondary" type="submit">Guardar marco</button>
+                            </form>
+                        </article>
+
+                        <article class="card">
+                            <div class="section-header">
+                                <div>
+                                    <p class="eyebrow">Catalogo</p>
+                                    <h3>Registrar control</h3>
+                                </div>
+                            </div>
+                            <form id="frameworkControlForm" class="form-grid">
+                                <label>
+                                    Marco
+                                    <select id="frameworkControlFramework" required></select>
+                                </label>
+                                <label>
+                                    Codigo de control
+                                    <input id="frameworkControlCode" required placeholder="A.5.1">
+                                </label>
+                                <label>
+                                    Dominio
+                                    <input id="frameworkControlDomain" required placeholder="Impacto">
+                                </label>
+                                <label>
+                                    Titulo
+                                    <input id="frameworkControlTitle" required placeholder="Evaluacion de impacto">
+                                </label>
+                                <label class="full-span">
+                                    Descripcion
+                                    <textarea id="frameworkControlDescription" rows="3"></textarea>
+                                </label>
+                                <label class="full-span">
+                                    Objetivo
+                                    <textarea id="frameworkControlObjective" rows="3"></textarea>
+                                </label>
+                                <button class="btn btn-secondary" type="submit">Guardar control</button>
+                            </form>
+                        </article>
+                    </div>
+
+                    <div class="stack-list">
+                        <article class="card">
+                            <div class="section-header">
+                                <div>
+                                    <p class="eyebrow">Nueva evaluacion</p>
+                                    <h3>Crear auditoria</h3>
+                                </div>
+                            </div>
+                            <form id="evaluationForm" class="form-grid">
+                                <label>
+                                    Marco / Norma
+                                    <select id="frameworkSelect" required></select>
+                                </label>
+                                <label>
+                                    Nombre de la evaluacion
+                                    <input id="evaluationName" required placeholder="Ej. Auditoria Interna IA 2026">
+                                </label>
+                                <label>
+                                    Area / organizacion auditada
+                                    <input id="evaluationAuditee" placeholder="Direccion de Tecnologia">
+                                </label>
+                                <label>
+                                    Alcance
+                                    <input id="evaluationScope" placeholder="Plataforma IA corporativa">
+                                </label>
+                                <label>
+                                    Periodo
+                                    <input id="evaluationPeriod" placeholder="Q2 2026">
+                                </label>
+                                <label>
+                                    Version
+                                    <input id="evaluationVersion" value="v1">
+                                </label>
+                                <button class="btn btn-primary" type="submit">Crear evaluacion e importar controles</button>
+                            </form>
+                            <p id="frameworkRequiredMessage" class="muted hidden">Primero debes registrar al menos un marco y sus controles.</p>
+                        </article>
+
+                        <article class="card">
+                            <div class="section-header">
+                                <div>
+                                    <p class="eyebrow">Portafolio</p>
+                                    <h3>Evaluaciones creadas</h3>
+                                </div>
+                            </div>
+                            <div id="evaluationsList" class="stack-list"></div>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <section class="view" id="workspaceView">
+                <div class="workspace-layout">
+                    <article class="card workspace-column">
+                        <div class="section-header">
+                            <div>
+                                <p class="eyebrow">Controles de la evaluacion</p>
+                                <h3 id="workspaceTitle">Selecciona una evaluacion</h3>
+                            </div>
+                            <button class="btn btn-secondary" id="processEvaluationBtn" disabled>Procesar toda la evaluacion</button>
+                        </div>
+                        <div id="controlsList" class="control-list"></div>
+                    </article>
+
+                    <article class="card workspace-column detail-column">
+                        <div id="controlDetailEmpty" class="empty-state">
+                            <h3>Mesa de revision de control</h3>
+                            <p>Selecciona una evaluacion y luego un control para registrar evidencia, aclaraciones, compensatorios, generar hallazgos y lanzar la evaluacion automatica.</p>
+                        </div>
+                        <div id="controlDetail" class="hidden"></div>
+                    </article>
+                </div>
+            </section>
+
+            <section class="view" id="findingsView">
+                <div class="two-column align-start">
+                    <article class="card">
+                        <div class="section-header">
+                            <div>
+                                <p class="eyebrow">Nuevo hallazgo</p>
+                                <h3>Registrar hallazgo manual</h3>
+                            </div>
+                        </div>
+                        <form id="findingForm" class="form-grid">
+                            <label>
+                                Evaluacion
+                                <select id="findingEvaluation" required></select>
+                            </label>
+                            <label>
+                                Titulo
+                                <input id="findingTitle" required placeholder="Hallazgo de control y evidencia">
+                            </label>
+                            <label>
+                                Severidad
+                                <select id="findingSeverity">
+                                    <option value="baja">Baja</option>
+                                    <option value="media" selected>Media</option>
+                                    <option value="alta">Alta</option>
+                                    <option value="critica">Critica</option>
+                                </select>
+                            </label>
+                            <label>
+                                Responsable
+                                <input id="findingOwner" placeholder="Nombre del responsable">
+                            </label>
+                            <label>
+                                Fecha compromiso
+                                <input id="findingDueDate" type="date">
+                            </label>
+                            <label class="full-span">
+                                Descripcion
+                                <textarea id="findingDescription" rows="4"></textarea>
+                            </label>
+                            <label class="full-span">
+                                Recomendacion
+                                <textarea id="findingRecommendation" rows="3"></textarea>
+                            </label>
+                            <button class="btn btn-primary" type="submit">Guardar hallazgo</button>
+                        </form>
+                    </article>
+
+                    <article class="card">
+                        <div class="section-header">
+                            <div>
+                                <p class="eyebrow">Seguimiento</p>
+                                <h3>Hallazgos y planes de accion</h3>
+                            </div>
+                        </div>
+                        <div id="findingsList" class="stack-list"></div>
+                    </article>
+                </div>
+            </section>
+
+            <section class="view" id="connectorsView">
+                <div class="two-column align-start">
+                    <article class="card">
+                        <div class="section-header">
+                            <div>
+                                <p class="eyebrow">Conector</p>
+                                <h3>Registrar fuente de datos</h3>
+                            </div>
+                        </div>
+                        <form id="connectorForm" class="form-grid">
+                            <label>
+                                Nombre
+                                <input id="connectorName" required placeholder="SharePoint Auditoria">
+                            </label>
+                            <label>
+                                Tipo
+                                <select id="connectorType" required>
+                                    <option value="sharepoint">SharePoint</option>
+                                    <option value="filesystem">Filesystem</option>
+                                    <option value="onedrive">OneDrive</option>
+                                    <option value="url">URL protegida</option>
+                                    <option value="api">API</option>
+                                    <option value="database">Base de datos</option>
+                                </select>
+                            </label>
+                            <label>
+                                Ruta base
+                                <input id="connectorPath" placeholder="/sites/auditoria/Shared Documents">
+                            </label>
+                            <label>
+                                URL base
+                                <input id="connectorUrl" placeholder="https://empresa.sharepoint.com/sites/auditoria">
+                            </label>
+                            <label class="full-span">
+                                Pista de credenciales
+                                <textarea id="connectorHint" rows="3" placeholder="Ej. Client ID, tenant y permiso Sites.Read.All"></textarea>
+                            </label>
+                            <button class="btn btn-primary" type="submit">Guardar fuente</button>
+                        </form>
+                    </article>
+
+                    <article class="card">
+                        <div class="section-header">
+                            <div>
+                                <p class="eyebrow">Inventario</p>
+                                <h3>Fuentes configuradas</h3>
+                            </div>
+                        </div>
+                        <div id="connectorsList" class="stack-list"></div>
+                    </article>
+                </div>
+            </section>
+
+            <section class="view" id="settingsView">
+                <div class="three-column">
+                    <article class="card">
+                        <div class="section-header">
+                            <div>
+                                <p class="eyebrow">Usuarios</p>
+                                <h3>Usuarios registrados</h3>
+                            </div>
+                        </div>
+                        <div id="usersList" class="stack-list"></div>
+                    </article>
+
+                    <article class="card">
+                        <div class="section-header">
+                            <div>
+                                <p class="eyebrow">Motores IA</p>
+                                <h3>Configuracion disponible</h3>
+                            </div>
+                        </div>
+                        <div id="providersList" class="stack-list"></div>
+                        <form id="providerForm" class="form-grid" style="margin-top: 16px;">
+                            <label>
+                                Nombre
+                                <input id="providerName" required placeholder="OpenAI Produccion">
+                            </label>
+                            <label>
+                                Tipo de proveedor
+                                <input id="providerType" required placeholder="azure-ai-foundry">
+                            </label>
+                            <label>
+                                Clase
+                                <select id="providerKind" required>
+                                    <option value="azure_foundry">Azure Foundry</option>
+                                    <option value="custom">Custom</option>
+                                </select>
+                            </label>
+                            <label>
+                                Modelo
+                                <input id="providerModel" required placeholder="gpt-4.1-mini">
+                            </label>
+                            <label>
+                                Deployment
+                                <input id="providerDeployment" placeholder="nombre-del-deployment">
+                            </label>
+                            <label class="full-span">
+                                Endpoint base
+                                <input id="providerEndpoint" placeholder="https://mi-recurso.services.ai.azure.com/models">
+                            </label>
+                            <label>
+                                API version
+                                <input id="providerApiVersion" value="2024-05-01-preview">
+                            </label>
+                            <label>
+                                API key
+                                <input id="providerSecret" type="password" placeholder="Se cifra al guardar">
+                            </label>
+                            <label>
+                                Pista del secreto
+                                <input id="providerSecretHint" placeholder="Key principal Foundry">
+                            </label>
+                            <button class="btn btn-secondary" type="submit">Guardar motor IA</button>
+                        </form>
+                    </article>
+
+                    <article class="card">
+                        <div class="section-header">
+                            <div>
+                                <p class="eyebrow">Prompts objetivo</p>
+                                <h3>Editar prompt por marco</h3>
+                            </div>
+                        </div>
+                        <form id="promptForm" class="form-grid">
+                            <label>
+                                Marco
+                                <select id="promptFramework"></select>
+                            </label>
+                            <label class="full-span">
+                                Prompt
+                                <textarea id="promptText" rows="8" placeholder="Describe aqui el prompt objetivo por norma"></textarea>
+                            </label>
+                            <button class="btn btn-primary" type="submit">Guardar prompt</button>
+                        </form>
+
+                        <div class="section-header" style="margin-top: 24px;">
+                            <div>
+                                <p class="eyebrow">Bitacora</p>
+                                <h3>Actividad reciente</h3>
+                            </div>
+                        </div>
+                        <div id="auditLogList" class="stack-list"></div>
+                    </article>
+                </div>
+            </section>
         </main>
-    </div>
+    </section>
 
     <div id="toastContainer" class="toast-container"></div>
-
     <script src="js/app.js" type="module"></script>
 </body>
 </html>
