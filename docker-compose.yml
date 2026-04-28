@@ -1,14 +1,14 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: auditcopilot-postgres
+    container_name: normaiso-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: auditcopilot
       POSTGRES_USER: audit
       POSTGRES_PASSWORD: audit
     ports:
-      - "5432:5432"
+      - "5435:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -19,18 +19,18 @@ services:
 
   app:
     build: .
-    container_name: auditcopilot-app
+    container_name: normaiso-app
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       NODE_ENV: production
-      PORT: 3000
-      APP_BASE_URL: http://localhost:3000
+      PORT: 3003
+      APP_BASE_URL: http://localhost:3003
       DATABASE_URL: postgresql://audit:audit@postgres:5432/auditcopilot
       APP_ENCRYPTION_KEY: change-this-in-production-with-a-strong-secret
-      ALLOWED_ORIGINS: http://localhost:3000
+      ALLOWED_ORIGINS: http://localhost:3003
       TRUST_PROXY: "false"
       DB_SSL: "false"
       DB_POOL_MAX: 20
@@ -44,8 +44,10 @@ services:
       AI_PROVIDER_NAME: azure-foundry
       AI_MODEL_NAME: configurar-modelo
     ports:
-      - "3000:3000"
+      - "3003:3003"
     volumes:
+      - .:/app
+      - /app/node_modules
       - uploads_data:/app/uploads
 
 volumes:

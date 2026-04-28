@@ -13,6 +13,6 @@ RUN mkdir -p /app/uploads \
 USER node
 
 ENV NODE_ENV=production
-EXPOSE 3000
+EXPOSE 3003
 
 CMD ["npm", "start"]

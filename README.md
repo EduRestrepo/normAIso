@@ -1,4 +1,4 @@
-# Audit Evidence Copilot
+# normAIso v1.0 - BY Eduardo Restrepo
 
 Plataforma web para auditoria interna orientada a marcos como `ISO 42001`, `ISO 27001`, `ENS` y otros catalogos de control, con evidencia multi-origen, evaluacion automatica por control, hallazgos, planes de accion y trazabilidad completa.
 

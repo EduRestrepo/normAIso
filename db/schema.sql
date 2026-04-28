@@ -74,6 +74,7 @@ CREATE TABLE IF NOT EXISTS evaluation_controls (
   compensatory_notes TEXT NOT NULL DEFAULT '',
   reviewer_decision TEXT NOT NULL DEFAULT '',
   reviewer_justification TEXT NOT NULL DEFAULT '',
+  is_auditable BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (evaluation_id, framework_control_id)
@@ -88,6 +89,7 @@ CREATE TABLE IF NOT EXISTS connectors (
   credentials_hint TEXT NOT NULL DEFAULT '',
   config_json JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_by INTEGER REFERENCES users(id),
+  evaluation_id INTEGER REFERENCES evaluations(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -177,4 +179,14 @@ CREATE TABLE IF NOT EXISTS settings (
   value_json JSONB NOT NULL DEFAULT '{}'::jsonb,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (category, key)
+);
+
+CREATE TABLE IF NOT EXISTS evaluation_participants (
+    id SERIAL PRIMARY KEY,
+    evaluation_id INTEGER REFERENCES evaluations(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
+    role VARCHAR(100),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

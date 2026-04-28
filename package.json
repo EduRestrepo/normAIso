@@ -1,6 +1,6 @@
 {
-  "name": "audit-evidence-copilot",
-  "version": "3.3.0",
+  "name": "normaiso",
+  "version": "1.0.0",
   "description": "Plataforma de auditoria con analisis automatico de evidencias",
   "main": "server.js",
   "scripts": {

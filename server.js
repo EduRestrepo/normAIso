@@ -13,7 +13,7 @@ const { Pool } = require('pg');
 
 const app = express();
 const ROOT_DIR = __dirname;
-const PORT = Number(process.env.PORT || 3000);
+const PORT = Number(process.env.PORT || 3003);
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const IS_PROD = NODE_ENV === 'production';
 const DB_URL = process.env.DATABASE_URL || '';
@@ -53,18 +53,23 @@ const pool = new Pool({
 app.disable('x-powered-by');
 app.set('trust proxy', process.env.TRUST_PROXY === 'true');
 
+/*
 app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      "default-src": ["'self'"],
+      "script-src": ["'self'", "https://unpkg.com", "'unsafe-inline'", "'unsafe-eval'"],
+      "style-src": ["'self'", "https://fonts.googleapis.com", "'unsafe-inline'"],
+      "font-src": ["'self'", "https://fonts.gstatic.com"],
+      "img-src": ["'self'", "data:", "https://*"],
+      "connect-src": ["'self'", "https://*"]
+    }
+  },
   crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
+*/
 
-app.use(cors({
-  origin(origin, callback) {
-    if (!origin || !ALLOWED_ORIGINS.length || ALLOWED_ORIGINS.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error('Origin no permitido por CORS.'));
-  }
-}));
+app.use(cors());
 
 app.use(rateLimit({
   windowMs: RATE_LIMIT_WINDOW_MS,
@@ -146,7 +151,54 @@ function normalizeEndpoint(baseUrl) {
 async function initDatabase() {
   const schemaPath = path.join(ROOT_DIR, 'db', 'schema.sql');
   const schema = fs.readFileSync(schemaPath, 'utf8');
+  
+  // Migraciones manuales para columnas nuevas
+  try {
+    await pool.query('ALTER TABLE connectors ADD COLUMN IF NOT EXISTS evaluation_id INTEGER REFERENCES evaluations(id) ON DELETE CASCADE;');
+    await pool.query('ALTER TABLE evaluation_controls ADD COLUMN IF NOT EXISTS is_auditable BOOLEAN NOT NULL DEFAULT TRUE;');
+    await pool.query('ALTER TABLE ai_providers ADD COLUMN IF NOT EXISTS is_default BOOLEAN NOT NULL DEFAULT FALSE;');
+  } catch (e) {
+    console.warn('Migracion automatica (columnas) salto: ', e.message);
+  }
+
   await pool.query(schema);
+  await seedFrameworks();
+  console.log('Base de datos inicializada correctamente');
+}
+
+async function seedFrameworks() {
+  const check = await pool.query('SELECT count(*) FROM frameworks');
+  if (parseInt(check.rows[0].count) > 0) return;
+
+  console.log('Inyectando Librería Normativa Completa (ISO 27001, ENS, ISO 42001)...');
+  const frameworks = [
+    { name: 'ISO/IEC 27001', code: 'ISO27001', version: '2022', description: 'Sistema de Gestión de Seguridad de la Información (SGSI).' },
+    { name: 'ENS (Esquema Nacional de Seguridad)', code: 'ENS', version: 'v3', description: 'Marco de seguridad para la administración pública y sus proveedores.' },
+    { name: 'ISO/IEC 42001', code: 'ISO42001', version: '2023', description: 'Sistema de Gestión de Inteligencia Artificial (SGIA).' }
+  ];
+
+  for (const fw of frameworks) {
+    const res = await pool.query(
+      'INSERT INTO frameworks (name, code, version, description) VALUES ($1, $2, $3, $4) RETURNING id',
+      [fw.name, fw.code, fw.version, fw.description]
+    );
+    const fwId = res.rows[0].id;
+    let controls = [];
+    try {
+      const dataPath = path.join(ROOT_DIR, 'db', 'frameworks_data.json');
+      const allData = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+      controls = allData[fw.code] || [];
+    } catch (e) {
+      console.warn(`Error cargando controles para ${fw.code} desde JSON:`, e.message);
+    }
+
+    for (const ctrl of controls) {
+      await pool.query(
+        'INSERT INTO framework_controls (framework_id, code, domain, title, description, objective) VALUES ($1, $2, $3, $4, $5, $6)',
+        [fwId, ctrl.code, ctrl.domain, ctrl.title, ctrl.desc, 'Validar cumplimiento normativo']
+      );
+    }
+  }
 }
 
 async function writeAuditLog(entityType, entityId, action, details = {}, actorName = 'system') {
@@ -601,6 +653,7 @@ async function getDashboardSummary() {
     LEFT JOIN evaluation_controls ec ON ec.framework_control_id = fc.id
     LEFT JOIN ai_assessments a ON a.evaluation_control_id = ec.id AND a.is_latest
     GROUP BY f.name
+    HAVING COUNT(ec.id) > 0
     ORDER BY f.name
   `);
 
@@ -610,6 +663,12 @@ async function getDashboardSummary() {
       controls: controls.rows[0].count,
       evidences: evidences.rows[0].count,
       findings: findings.rows[0],
+      compliance: {
+        score: (findings.rows[0].cumple + findings.rows[0].parcial + findings.rows[0].revision + findings.rows[0].insuficiente) > 0
+          ? Math.round((findings.rows[0].cumple / (findings.rows[0].cumple + findings.rows[0].parcial + findings.rows[0].revision + findings.rows[0].insuficiente)) * 100)
+          : 0,
+        totalAssessed: (findings.rows[0].cumple + findings.rows[0].parcial + findings.rows[0].revision + findings.rows[0].insuficiente)
+      },
       operational: {
         ...operational.rows[0],
         ...plans.rows[0]
@@ -623,8 +682,8 @@ function buildOpenApiSpec() {
   return {
     openapi: '3.1.0',
     info: {
-      title: 'Audit Evidence Copilot API',
-      version: '3.3.0'
+      title: 'normAIso API v1.0',
+      version: '1.0.0'
     },
     servers: [{ url: APP_BASE_URL }],
     paths: {
@@ -661,6 +720,82 @@ async function testProviderConnection(provider) {
   return { ok: true, message: 'Conexion valida', data };
 }
 
+app.delete('/api/connectors/:id', async (req, res, next) => {
+  try {
+    await pool.query('DELETE FROM connectors WHERE id = $1', [req.params.id]);
+    await writeAuditLog('connector', req.params.id, 'delete', {});
+    res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/ai-providers/test-config', async (req, res, next) => {
+  try {
+    const { name, providerType, providerKind, modelName, deploymentName, endpointUrl, apiVersion, secret } = req.body;
+    const mockProvider = {
+      name,
+      provider_type: providerType,
+      provider_kind: providerKind,
+      model_name: modelName,
+      deployment_name: deploymentName,
+      endpoint_url: endpointUrl,
+      api_version: apiVersion,
+      secret_ciphertext: encryptSecret(secret)
+    };
+    const result = await testProviderConnection(mockProvider);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch('/api/ai-providers/:id/default', async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('UPDATE ai_providers SET is_default = FALSE');
+    await client.query('UPDATE ai_providers SET is_default = TRUE WHERE id = $1', [req.params.id]);
+    await client.query('COMMIT');
+    await writeAuditLog('ai_provider', req.params.id, 'set_default', {});
+    res.json({ success: true });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    next(error);
+  } finally {
+    client.release();
+  }
+});
+
+app.put('/api/ai-providers/:id', async (req, res, next) => {
+  try {
+    const { name, providerType, providerKind, modelName, deploymentName, endpointUrl, apiVersion, secret, secretHint } = req.body;
+    let query = `UPDATE ai_providers SET name = $1, provider_type = $2, provider_kind = $3, model_name = $4, deployment_name = $5, endpoint_url = $6, api_version = $7`;
+    const params = [name, providerType, providerKind, modelName, deploymentName, endpointUrl, apiVersion];
+    if (secret) {
+      query += `, secret_ciphertext = $${params.length + 1}, secret_hint = $${params.length + 2}`;
+      params.push(encryptSecret(secret), secretHint || '');
+    }
+    query += ` WHERE id = $${params.length + 1} RETURNING *`;
+    params.push(req.params.id);
+    const result = await pool.query(query, params);
+    await writeAuditLog('ai_provider', req.params.id, 'update', { name });
+    res.json(result.rows[0]);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete('/api/ai-providers/:id', async (req, res, next) => {
+  try {
+    await pool.query('DELETE FROM ai_providers WHERE id = $1', [req.params.id]);
+    await writeAuditLog('ai_provider', req.params.id, 'delete', {});
+    res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get('/api/health', async (req, res, next) => {
   try {
     await pool.query('SELECT 1');
@@ -691,7 +826,25 @@ app.get('/api/dashboard', async (req, res, next) => {
   }
 });
 
+app.get('/api/dashboard/trend', async (req, res, next) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        DATE_TRUNC('day', created_at)::date as date,
+        ROUND(AVG(CASE WHEN result = 'cumple' THEN 100 ELSE 0 END), 1) as score
+      FROM ai_assessments
+      WHERE is_latest = TRUE
+      GROUP BY 1
+      ORDER BY 1 ASC
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get('/api/frameworks', async (req, res, next) => {
+  console.log('[API] GET /api/frameworks');
   try {
     const result = await pool.query(`
       SELECT
@@ -702,10 +855,23 @@ app.get('/api/frameworks', async (req, res, next) => {
       GROUP BY f.id
       ORDER BY f.name, f.version
     `);
+    console.log('[API] Enviando', result.rows.length, 'marcos al cliente');
     res.json(result.rows);
   } catch (error) {
     next(error);
   }
+});
+
+app.post('/api/admin/reseed', async (req, res, next) => {
+    console.log('[ADMIN] Solicitud de re-seed manual');
+    try {
+        await pool.query('DELETE FROM framework_controls');
+        await pool.query('DELETE FROM frameworks');
+        await seedFrameworks();
+        res.json({ ok: true, message: 'Libreria re-sincronizada correctamente' });
+    } catch (error) {
+        next(error);
+    }
 });
 
 app.post('/api/frameworks', async (req, res, next) => {
@@ -787,7 +953,7 @@ app.get('/api/evaluations', async (req, res, next) => {
 app.post('/api/evaluations', async (req, res, next) => {
   const client = await pool.connect();
   try {
-    const { frameworkId, name, auditee, scope, periodLabel, versionLabel, status = 'borrador' } = req.body;
+    const { frameworkId, name, auditee, scope, periodLabel, versionLabel, status = 'borrador', participants = [] } = req.body;
     await client.query('BEGIN');
     const evaluationResult = await client.query(
       `
@@ -809,14 +975,79 @@ app.post('/api/evaluations', async (req, res, next) => {
       `,
       [evaluation.id, frameworkId]
     );
+
+    if (participants && participants.length > 0) {
+      for (const p of participants) {
+        await client.query(
+          'INSERT INTO evaluation_participants (evaluation_id, name, email, role) VALUES ($1, $2, $3, $4)',
+          [evaluation.id, p.name, p.email, p.role]
+        );
+      }
+    }
+
     await client.query('COMMIT');
-    await writeAuditLog('evaluation', evaluation.id, 'create', evaluation);
+    await writeAuditLog('evaluation', evaluation.id, 'create', { ...evaluation, participantsCount: participants.length });
     res.status(201).json(evaluation);
   } catch (error) {
     await client.query('ROLLBACK');
     next(error);
   } finally {
     client.release();
+  }
+});
+
+app.get('/api/evaluations/:id/participants', async (req, res, next) => {
+  try {
+    const result = await pool.query('SELECT * FROM evaluation_participants WHERE evaluation_id = $1 ORDER BY id', [req.params.id]);
+    res.json(result.rows);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.put('/api/evaluations/:id', async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const { name, auditee, periodLabel, participants = [] } = req.body;
+    await client.query('BEGIN');
+    const result = await client.query(
+      `
+        UPDATE evaluations
+        SET name = $2, auditee = $3, period_label = $4, updated_at = NOW()
+        WHERE id = $1
+        RETURNING *
+      `,
+      [req.params.id, name, auditee, periodLabel]
+    );
+
+    if (participants) {
+      await client.query('DELETE FROM evaluation_participants WHERE evaluation_id = $1', [req.params.id]);
+      for (const p of participants) {
+        await client.query(
+          'INSERT INTO evaluation_participants (evaluation_id, name, email, role) VALUES ($1, $2, $3, $4)',
+          [req.params.id, p.name, p.email, p.role]
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+    await writeAuditLog('evaluation', req.params.id, 'update', { name, auditee, periodLabel, participantsCount: participants.length });
+    res.json(result.rows[0]);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    next(error);
+  } finally {
+    client.release();
+  }
+});
+
+app.delete('/api/evaluations/:id', async (req, res, next) => {
+  try {
+    await pool.query('DELETE FROM evaluations WHERE id = $1', [req.params.id]);
+    await writeAuditLog('evaluation', req.params.id, 'delete', {});
+    res.json({ success: true });
+  } catch (error) {
+    next(error);
   }
 });
 
@@ -872,6 +1103,17 @@ app.get('/api/evaluation-controls/:id/evidences', async (req, res, next) => {
       [req.params.id]
     );
     res.json(result.rows);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch('/api/evaluation-controls/:id/auditable', async (req, res, next) => {
+  try {
+    const { isAuditable } = req.body;
+    await pool.query('UPDATE evaluation_controls SET is_auditable = $1, updated_at = NOW() WHERE id = $2', [isAuditable, req.params.id]);
+    await writeAuditLog('evaluation_control', req.params.id, 'update_auditable', { isAuditable });
+    res.json({ success: true });
   } catch (error) {
     next(error);
   }
@@ -1118,7 +1360,12 @@ app.get('/api/audit-logs', async (req, res, next) => {
 
 app.get('/api/connectors', async (req, res, next) => {
   try {
-    const result = await pool.query('SELECT * FROM connectors ORDER BY created_at DESC');
+    const result = await pool.query(`
+      SELECT c.*, e.name AS evaluation_name
+      FROM connectors c
+      LEFT JOIN evaluations e ON e.id = c.evaluation_id
+      ORDER BY c.created_at DESC
+    `);
     res.json(result.rows);
   } catch (error) {
     next(error);
@@ -1127,16 +1374,16 @@ app.get('/api/connectors', async (req, res, next) => {
 
 app.post('/api/connectors', async (req, res, next) => {
   try {
-    const { name, connectorType, basePath, baseUrl, credentialsHint, config = {} } = req.body;
+    const { name, evaluationId, connectorType, basePath, baseUrl, credentialsHint, config = {} } = req.body;
     const result = await pool.query(
       `
         INSERT INTO connectors (
-          name, connector_type, base_path, base_url, credentials_hint, config_json, created_by
+          name, evaluation_id, connector_type, base_path, base_url, credentials_hint, config_json, created_by
         )
-        VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7)
+        VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8)
         RETURNING *
       `,
-      [name, connectorType, basePath, baseUrl, credentialsHint, JSON.stringify(config), defaultUserId]
+      [name, evaluationId || null, connectorType, basePath, baseUrl, credentialsHint, JSON.stringify(config), defaultUserId]
     );
     await writeAuditLog('connector', result.rows[0].id, 'create', result.rows[0]);
     res.status(201).json(result.rows[0]);
@@ -1204,6 +1451,25 @@ app.post('/api/ai-providers', async (req, res, next) => {
     res.status(201).json(sanitizeProvider(result.rows[0]));
   } catch (error) {
     next(error);
+  }
+});
+
+app.post('/api/ai-providers/test-config', async (req, res, next) => {
+  try {
+    const { providerType, providerKind, modelName, deploymentName, endpointUrl, apiVersion, secret } = req.body;
+    const provider = {
+      provider_type: providerType,
+      provider_kind: providerKind,
+      model_name: modelName,
+      deployment_name: deploymentName,
+      endpoint_url: normalizeEndpoint(endpointUrl),
+      api_version: apiVersion,
+      secret_ciphertext: secret ? encryptSecret(secret) : ''
+    };
+    const message = await testProvider(provider);
+    res.json({ message });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 });
 
@@ -1304,6 +1570,17 @@ app.post('/api/settings/prompt', async (req, res, next) => {
   }
 });
 
+app.post('/api/admin/reseed', async (req, res, next) => {
+  try {
+    console.log('[ADMIN] Reseeding normative library...');
+    await pool.query('DELETE FROM frameworks CASCADE');
+    await seedFrameworks();
+    res.json({ message: 'Libreria normativa recargada con exito (Todos los controles inyectados)' });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({ error: 'Endpoint no encontrado', requestId: req.requestId });
@@ -1329,7 +1606,7 @@ initDatabase()
   .then(async () => {
     await pool.query('SELECT 1');
     app.listen(PORT, () => {
-      console.log(`Audit Evidence Copilot running at ${APP_BASE_URL}`);
+      console.log(`normAIso v1.0 running at ${APP_BASE_URL} - BY Eduardo Restrepo`);
     });
   })
   .catch((error) => {
