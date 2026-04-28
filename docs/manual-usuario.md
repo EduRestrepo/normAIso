@@ -2,272 +2,441 @@
 
 ## Objetivo
 
-Este manual explica cómo operar la aplicación desde la interfaz para configurar el catálogo, crear evaluaciones y analizar evidencias.
+Este manual explica como operar la aplicacion desde la interfaz actual para:
 
-## Perfil objetivo
+- registrar marcos y controles,
+- crear evaluaciones,
+- adjuntar evidencia,
+- procesar resultados con IA,
+- abrir hallazgos y planes de accion,
+- administrar conectores, prompts y proveedores IA.
+
+## Perfil de uso
 
 Pensado para:
 
 - auditor interno,
 - lider de auditoria,
-- administrador funcional.
+- responsable funcional del repositorio normativo,
+- administrador de configuracion.
 
-## Antes de empezar
+## Conceptos clave
 
-La aplicacion arranca sin datos cargados. Antes de crear una auditoria debes:
+### Marco
 
-1. registrar un marco,
-2. registrar al menos un control dentro del marco,
-3. opcionalmente registrar conectores,
-4. opcionalmente registrar motores IA,
-5. opcionalmente registrar prompts por marco.
+Catalogo normativo base. Ejemplos:
 
-## Navegacion principal
+- `ISO 27001`
+- `ISO 42001`
+- `ENS`
+
+### Control
+
+Item individual del marco que sera evaluado.
+
+### Evaluacion
+
+Instancia concreta de auditoria que copia los controles del marco elegido.
+
+### Evidencia principal
+
+Documento o referencia principal usada para soportar un control.
+
+### Evidencia compensatoria
+
+Aclaracion, excepcion o soporte adicional cuando la evidencia principal no es suficiente por si sola.
+
+### Hallazgo
+
+Brecha o desviacion abierta sobre un control.
+
+### Plan de accion
+
+Accion correctiva o de mejora asociada a un hallazgo.
+
+## Estructura de la interfaz
 
 ### `Resumen`
 
-Muestra:
+Vista ejecutiva con:
 
 - total de evaluaciones,
-- total de controles evaluados,
+- total de controles instanciados,
 - total de evidencias,
-- controles insuficientes,
-- estado del repositorio normativo.
+- distribucion de resultados IA,
+- estado operativo de hallazgos y planes,
+- agregacion por marco.
 
 ### `Evaluaciones`
 
-Permite:
+Zona de alta y consulta de:
 
-- registrar marcos,
-- registrar controles,
-- crear evaluaciones,
-- consultar evaluaciones existentes.
+- marcos,
+- controles,
+- evaluaciones.
 
 ### `Mesa de control`
 
+Vista operativa de una evaluacion concreta.
+
 Permite:
 
-- abrir una evaluacion,
-- ver cada control,
-- subir evidencia,
-- asociar referencias externas,
-- registrar notas y compensatorios,
-- procesar controles o toda la evaluacion.
+- navegar entre controles,
+- registrar notas,
+- subir evidencias,
+- referenciar evidencias externas,
+- procesar el control,
+- procesar toda la evaluacion,
+- crear hallazgos.
 
 ### `Fuentes`
 
-Permite:
+Administracion de conectores.
 
-- registrar conectores documentales o tecnicos.
+### `Hallazgos`
+
+Seguimiento de hallazgos y planes de accion.
 
 ### `Configuracion`
 
-Permite:
+Administracion de:
 
-- visualizar usuarios disponibles,
-- registrar motores IA,
-- editar prompts por marco.
+- usuarios visibles,
+- proveedores IA,
+- prompts,
+- bitacora.
 
-## Flujo paso a paso
+## Preparacion inicial recomendada
 
-## 1. Registrar un marco normativo
+La app arranca sin datos precargados. Antes de evaluar debes preparar al menos:
+
+1. un marco,
+2. uno o mas controles,
+3. si usaras evidencia referenciada, al menos un conector,
+4. si usaras IA remota, al menos un proveedor IA,
+5. opcionalmente un prompt por marco.
+
+## Flujo completo de uso
+
+### 1. Registrar un marco normativo
 
 Ir a `Evaluaciones`.
 
-Completar en `Registrar marco`:
+En el formulario de marcos completar:
 
-- nombre del marco,
+- nombre,
 - codigo,
 - version,
 - descripcion.
 
-Pulsar `Guardar marco`.
+Guardar.
 
-Resultado esperado:
+Resultado:
 
-- el marco queda disponible para asociarle controles y crear evaluaciones.
+- el marco queda disponible para asociarle controles y para crear evaluaciones.
 
-## 2. Registrar controles del marco
+### 2. Registrar controles del marco
 
-En la misma sección, usar `Registrar control`.
+Seguir en `Evaluaciones`.
 
-Completar:
+En el formulario de control seleccionar el marco y completar:
 
-- marco,
 - codigo del control,
 - dominio,
 - titulo,
 - descripcion,
 - objetivo.
 
-Pulsar `Guardar control`.
+Si el frontend muestra campos de guias o evidencia sugerida, usarlos para enriquecer el catalogo.
 
-Repetir por cada control que quieras incorporar al catálogo.
+Guardar.
 
-## 3. Registrar fuentes de evidencia
+Resultado:
+
+- cada control queda registrado dentro del marco.
+
+### 3. Registrar fuentes de evidencia
 
 Ir a `Fuentes`.
 
 Completar:
 
-- nombre,
-- tipo,
+- nombre del conector,
+- tipo de conector,
 - ruta base,
 - URL base,
 - pista de credenciales.
 
-Pulsar `Guardar fuente`.
+Ejemplos de tipo:
 
-Esto permite luego referenciar evidencias desde:
+- `sharepoint`
+- `filesystem`
+- `onedrive`
+- `url`
+- `api`
+- `database`
 
-- SharePoint,
-- filesystem,
-- URL,
-- OneDrive,
-- futuras integraciones.
+Resultado:
 
-## 4. Registrar motores IA
+- el conector podra elegirse al referenciar evidencias.
+
+### 4. Configurar un proveedor IA
 
 Ir a `Configuracion`.
 
-En `Motores IA`, completar:
+En `Motores IA` completar:
 
 - nombre,
 - tipo,
-- modelo.
+- clase de proveedor,
+- modelo,
+- deployment,
+- endpoint,
+- api version,
+- api key,
+- pista del secreto.
 
-Pulsar `Guardar motor IA`.
+Para `Azure AI Foundry` usar:
 
-Nota:
+- `providerKind = azure_foundry`
+- endpoint base con formato `https://<resource>.services.ai.azure.com/models`
 
-- hoy la app guarda la configuracion, pero la evaluacion automatica sigue usando una logica heuristica base.
+Guardar.
 
-## 5. Configurar prompt por marco
+Luego usar `Probar conexion` para validar la configuracion.
+
+### 5. Configurar un prompt por marco
 
 Ir a `Configuracion`.
 
-En `Prompts objetivo`:
+En la seccion de prompt:
 
-- seleccionar el marco,
-- escribir el prompt,
+- indicar el codigo del marco,
+- redactar el prompt objetivo,
 - guardar.
 
-## 6. Crear una evaluacion
+Uso esperado:
+
+- ajustar el tono o el criterio de evaluacion para una familia de controles.
+
+### 6. Crear una evaluacion
 
 Ir a `Evaluaciones`.
 
-En `Crear auditoria`, completar:
+En `Crear auditoria` completar:
 
 - marco,
 - nombre de la evaluacion,
-- area u organizacion auditada,
+- auditado,
 - alcance,
 - periodo,
 - version.
 
-Pulsar `Crear evaluacion e importar controles`.
+Guardar.
 
-Resultado esperado:
+Resultado:
 
-- el sistema crea la evaluacion,
-- importa automaticamente los controles del marco.
+- se crea la evaluacion,
+- el sistema importa automaticamente todos los controles del marco a la mesa de control.
 
-## 7. Abrir la mesa de control
+### 7. Abrir la mesa de control
 
-Dentro de `Evaluaciones`, en la lista de evaluaciones:
+Desde la lista de evaluaciones, abrir la evaluacion deseada.
 
-- pulsar `Abrir mesa de control`.
+La mesa mostrara:
 
-El sistema mostrara:
+- lista de controles,
+- estado IA,
+- confianza,
+- numero de evidencias,
+- resumen del ultimo procesamiento,
+- conteo de hallazgos abiertos.
 
-- lista de controles de la evaluacion,
-- detalle del control seleccionado.
-
-## 8. Registrar notas del auditor
+### 8. Registrar notas del auditor
 
 Seleccionar un control.
 
-En `Registro del auditor` completar:
+Completar:
 
-- notas del auditor,
-- aclaracion o compensatorio.
+- `notas del auditor`
+- `aclaracion o compensatorio`
+- si la interfaz lo muestra, `decision del revisor`
+- `justificacion del revisor`
 
-Pulsar `Guardar observaciones`.
+Guardar observaciones.
 
-## 9. Subir evidencia manual
+Estas notas mejoran el contexto usado por la IA y dejan trazabilidad para la revision humana.
 
-En el bloque `Adjuntar evidencia`:
+### 9. Subir evidencia manual
 
-- elegir rol de evidencia,
-- indicar etiqueta de fuente,
-- seleccionar archivo,
-- agregar nota,
-- pulsar `Subir archivo`.
+En el bloque de carga:
 
-El archivo queda asociado al control.
+- seleccionar rol de evidencia,
+- introducir etiqueta de fuente,
+- elegir archivo,
+- anadir nota si aplica,
+- guardar.
 
-## 10. Referenciar evidencia externa
+Archivos tipicos:
 
-En el formulario de referencia:
+- PDF,
+- DOCX,
+- TXT,
+- LOG,
+- exportes de herramienta.
 
-- elegir rol,
-- elegir origen,
-- seleccionar conector si existe,
-- indicar nombre del archivo,
-- indicar ruta o identificador,
-- indicar URL si aplica,
-- opcionalmente pegar texto extraido o resumen,
-- pulsar `Referenciar evidencia`.
+Resultado:
 
-Esto sirve cuando no quieres duplicar el archivo y solo quieres vincularlo desde su origen real.
+- el archivo se almacena en el servidor,
+- se registra la metadata en la base.
 
-## 11. Procesar un control
+### 10. Referenciar evidencia externa
 
-Con un control seleccionado:
+En el bloque de evidencia referenciada completar:
 
-- pulsar `Procesar este control`.
+- rol,
+- origen,
+- conector,
+- nombre del archivo,
+- ruta o identificador,
+- URL externa,
+- texto extraido o resumen,
+- notas,
+- aclaracion.
 
-El sistema genera:
+Usos tipicos:
 
-- resultado sugerido,
+- SharePoint,
+- carpeta compartida,
+- OneDrive,
+- URL segura,
+- API corporativa.
+
+Ventaja:
+
+- no duplicas el binario si ya existe en su repositorio origen.
+
+### 11. Procesar un control
+
+Con el control seleccionado, usar `Procesar este control`.
+
+El sistema intentara:
+
+1. usar el proveedor IA activo,
+2. si falla y esta permitido, usar heuristica local.
+
+El resultado muestra:
+
+- estado sugerido,
 - confianza,
 - fortalezas,
 - brechas,
 - evidencia faltante,
 - recomendacion.
 
-## 12. Procesar toda la evaluacion
+### 12. Procesar toda la evaluacion
 
-Dentro de `Mesa de control`:
+Usar `Procesar toda la evaluacion`.
 
-- pulsar `Procesar toda la evaluacion`.
+El backend ejecuta el analisis secuencial de todos los controles instanciados.
 
-Esto recorre todos los controles de la evaluacion.
+Uso recomendado:
 
-## Interpretacion de resultados
+- cuando ya cargaste un conjunto significativo de evidencias.
 
-Estados esperados:
+### 13. Crear hallazgos
 
-- `cumple`
-- `cumple_parcialmente`
-- `requiere_validacion_humana`
-- `evidencia_insuficiente`
+Si un control queda con evidencia debil:
 
-La confianza se muestra en porcentaje y sirve como apoyo, no como reemplazo del juicio del auditor.
+- crear hallazgo manualmente, o
+- usar el boton para generarlo desde el control.
 
-## Buenas practicas de uso
+Campos habituales:
 
-- no crear evaluaciones sin haber cargado controles reales,
-- completar siempre notas del auditor,
-- usar evidencia compensatoria solo cuando corresponda,
-- mantener una nomenclatura consistente para archivos y rutas,
-- documentar claramente el origen de la evidencia,
-- revisar la conclusion automatica antes de darla por valida.
+- titulo,
+- descripcion,
+- severidad,
+- responsable,
+- fecha objetivo,
+- recomendacion.
 
-## Limitaciones actuales para el usuario
+Nota:
 
-- no existe login real aun,
-- no hay workflow formal de aprobacion,
-- no hay OCR,
-- no hay lectura automatica real de SharePoint,
-- el analisis IA actual es una base heuristica.
+- algunos hallazgos pueden generarse automaticamente al procesar resultados insuficientes o que requieren validacion humana.
+
+### 14. Gestionar planes de accion
+
+Desde `Hallazgos` abrir el hallazgo y registrar acciones:
+
+- titulo,
+- descripcion,
+- responsable,
+- fecha objetivo,
+- estado,
+- progreso.
+
+Esto permite dar continuidad al cierre de brechas.
+
+## Interpretacion de resultados IA
+
+### `cumple`
+
+La evidencia parece suficiente para sostener el control.
+
+### `cumple_parcialmente`
+
+Existe cobertura, pero no completa o no totalmente robusta.
+
+### `requiere_validacion_humana`
+
+La IA detecta elementos utiles, pero no suficientes para una conclusion automatica segura.
+
+### `evidencia_insuficiente`
+
+Faltan evidencias o el soporte aportado es demasiado debil.
+
+### `no_cumple`
+
+Estado reservado para escenarios mas concluyentes de incumplimiento.
+
+## Buenas practicas operativas
+
+1. no crear evaluaciones sin haber definido el catalogo real,
+2. documentar siempre el origen de la evidencia,
+3. diferenciar evidencia principal de compensatoria,
+4. usar nombres coherentes para rutas y archivos,
+5. completar notas del auditor antes de procesar,
+6. validar manualmente la conclusion IA antes del cierre,
+7. abrir hallazgo cuando la brecha tenga impacto y requiera seguimiento,
+8. mantener actualizados responsables y fechas objetivo.
+
+## Recomendaciones especificas para SharePoint
+
+Cuando uses evidencia referenciada desde SharePoint, intenta registrar:
+
+- nombre del documento,
+- ruta o identificador estable,
+- URL web,
+- sitio o biblioteca mediante el conector,
+- resumen textual o extracto relevante si la integracion automatica aun no existe.
+
+Esto mejora trazabilidad y calidad del analisis.
+
+## Limitaciones funcionales actuales
+
+- no existe login real,
+- no existe aprobacion formal multiusuario,
+- el upload no extrae automaticamente texto de PDF o DOCX,
+- SharePoint y otros conectores no se sincronizan en vivo todavia,
+- la IA depende de que haya texto util en `extractedText`, `notes` o contenido preparado,
+- la configuracion de usuarios es todavia basica.
+
+## Soporte de diagnostico
+
+Si algo falla:
+
+1. revisar `Configuracion` y la bitacora,
+2. validar proveedor IA con `Probar conexion`,
+3. comprobar que el control tenga evidencia asociada,
+4. verificar que el backend este sano con `GET /api/health`,
+5. revisar el `requestId` devuelto por el sistema para correlacionar errores.
